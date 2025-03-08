@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { useCommonDriftStore } from "@drift-labs/react";
+
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 
