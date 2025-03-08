@@ -40,7 +40,7 @@ const Navbar = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <Image
-                  src="/icons/drift-icon.png"
+                  src="/drift-icon.png"
                   alt="drift-logo"
                   width={32}
                   height={32}
