@@ -1,21 +1,17 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Lexend_Deca } from "next/font/google";
 import "./globals.css";
+import { SolanaWalletProvider } from "@/components/providers/solana-wallet-provider";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const lexendDeca = Lexend_Deca({
+  variable: "--font-lexend-deca",
+  weight: ["400", "500", "700"],
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "Driftoor",
-  description: "Easily manage your positions on Drift",
+  description: "Easily manage your positions on Drift via Driftoor",
 };
 
 export default function RootLayout({
@@ -26,9 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${lexendDeca.variable} font-lexend-deca antialiased min-h-screen circles`}
       >
-        {children}
+        <SolanaWalletProvider>{children}</SolanaWalletProvider>
       </body>
     </html>
   );
