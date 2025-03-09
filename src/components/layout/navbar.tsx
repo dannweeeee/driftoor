@@ -6,6 +6,7 @@ import React from "react";
 
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 const SolanaWalletMultiButton = dynamic(
   async () =>
@@ -16,6 +17,8 @@ const SolanaWalletMultiButton = dynamic(
 );
 
 const Navbar = () => {
+  const { wallet } = useWallet();
+
   return (
     <>
       <motion.header
@@ -56,7 +59,15 @@ const Navbar = () => {
             className="flex-1 justify-end items-center hidden md:!flex gap-2"
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <SolanaWalletMultiButton />
+              <SolanaWalletMultiButton>
+                {wallet?.adapter?.publicKey
+                  ? `${wallet?.adapter?.publicKey
+                      ?.toBase58()
+                      .slice(0, 4)}...${wallet?.adapter?.publicKey
+                      ?.toBase58()
+                      .slice(-4)}`
+                  : "Connect Wallet"}
+              </SolanaWalletMultiButton>
             </motion.div>
           </motion.div>
           <motion.div
@@ -66,7 +77,15 @@ const Navbar = () => {
             className="block md:hidden ml-8"
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <SolanaWalletMultiButton />
+              <SolanaWalletMultiButton>
+                {wallet?.adapter?.publicKey
+                  ? `${wallet?.adapter?.publicKey
+                      ?.toBase58()
+                      .slice(0, 4)}...${wallet?.adapter?.publicKey
+                      ?.toBase58()
+                      .slice(-4)}`
+                  : "Connect Wallet"}
+              </SolanaWalletMultiButton>
             </motion.div>
           </motion.div>
         </nav>

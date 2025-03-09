@@ -92,3 +92,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+button.wallet-adapter-button-trigger {
+  background: white;
+  color: black;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  transition: all 0.2s ease-in-out;
+  letter-spacing: 0.01em;
+  font-family: var(--font-lexend-deca);
+  border: none;
+}
+
+button.wallet-adapter-button-trigger:hover {
+  background-color: black;
+  color: white;
+  transform: translateY(-1px);
+}
