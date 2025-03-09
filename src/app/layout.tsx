@@ -11,7 +11,8 @@ const lexendDeca = Lexend_Deca({
 
 export const metadata: Metadata = {
   title: "Driftoor",
-  description: "Easily manage your positions across all Subaccounts on Drift via Driftoor",
+  description:
+    "Easily manage your positions across all Subaccounts on Drift via Driftoor",
 };
 
 export default function RootLayout({
