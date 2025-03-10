@@ -3,23 +3,12 @@
 import React, { createContext, useContext, ReactNode } from "react";
 import { DriftClient, User } from "@drift-labs/sdk";
 
-interface DriftPosition {
-  totalDeposit: number;
-  costBasis: number;
-  positionSizeSol: number;
-  positionSizeUsd: number;
-  entryPrice: number;
-  pnl: number;
-  currentPrice: number;
-}
-
 interface DriftClientContextProps {
   children: ReactNode;
   driftClient: DriftClient | null;
   driftUser: User | null;
   isInitialized: boolean;
   isSubscribed: boolean;
-  driftPosition: DriftPosition;
 }
 
 interface DriftContextType {
@@ -27,7 +16,6 @@ interface DriftContextType {
   driftUser: User | null;
   isInitialized: boolean;
   isSubscribed: boolean;
-  driftPosition: DriftPosition;
 }
 
 const DriftContext = createContext<DriftContextType | null>(null);
@@ -38,7 +26,6 @@ export const DriftClientContext: React.FC<DriftClientContextProps> = ({
   driftUser,
   isInitialized,
   isSubscribed,
-  driftPosition,
 }) => {
   return (
     <DriftContext.Provider
@@ -47,7 +34,6 @@ export const DriftClientContext: React.FC<DriftClientContextProps> = ({
         driftUser,
         isInitialized,
         isSubscribed,
-        driftPosition,
       }}
     >
       {children}

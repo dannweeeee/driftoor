@@ -13,8 +13,6 @@ interface DriftState {
   isSubscribed: boolean;
   isLoading: boolean;
   error: Error | null;
-
-  // Actions
   initializeDriftClient: (
     connection: Connection,
     wallet: Wallet,
@@ -24,6 +22,7 @@ interface DriftState {
   subscribeToDriftClient: () => Promise<void>;
   resetDriftClient: () => void;
   getUserAccount: () => Promise<boolean>;
+  updateDriftUser: (newUser: User) => void;
 }
 
 export const useDriftClientStore = create<DriftState>((set, get) => ({
@@ -180,5 +179,15 @@ export const useDriftClientStore = create<DriftState>((set, get) => ({
       isLoading: false,
       error: null,
     });
+  },
+
+  updateDriftUser: (newUser: User) => {
+    const { driftUser } = get();
+
+    if (driftUser && driftUser.isSubscribed) {
+      driftUser.unsubscribe();
+    }
+
+    set({ driftUser: newUser });
   },
 }));

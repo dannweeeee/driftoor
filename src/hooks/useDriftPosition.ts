@@ -1,28 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Connection, PublicKey } from "@solana/web3.js";
-import {
-  DRIFT_PROGRAM_ID,
-  DriftClient,
-  User,
-  calculateEntryPrice,
-  calculatePositionPNL,
-  getUserAccountPublicKey,
-} from "@drift-labs/sdk";
-import { WalletContextState } from "@solana/wallet-adapter-react";
+import { useCallback, useState, useEffect } from "react";
+import { calculateEntryPrice, calculatePositionPNL } from "@drift-labs/sdk";
 import { useDriftClient } from "@/contexts/drift-client-context";
+import { formatTokenAmount } from "@/helpers/formatTokenAmount";
 
-// Helper function to format token amounts
-const formatTokenAmount = (
-  amount: number,
-  decimals: number,
-  divisor: number
-): number => {
-  return Number((amount / divisor).toFixed(decimals));
-};
-
-interface DriftPositionData {
+interface DriftPosition {
   totalDeposit: number;
   costBasis: number;
   positionSizeSol: number;
@@ -32,178 +15,88 @@ interface DriftPositionData {
   currentPrice: number;
 }
 
-export const useDriftPosition = (connection: Connection) => {
-  const { driftClient, driftUser, driftPosition } = useDriftClient();
+export const useDriftPosition = () => {
+  const { driftClient, driftUser, isSubscribed } = useDriftClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [position, setPosition] = useState<DriftPosition>({
+    totalDeposit: 0,
+    costBasis: 0,
+    positionSizeSol: 0,
+    positionSizeUsd: 0,
+    entryPrice: 0,
+    pnl: 0,
+    currentPrice: 0,
+  });
 
-  // Function to initialize Drift client for a specific subaccount
-  const initializeForSubaccount = useCallback(
-    async (wallet: WalletContextState, subaccountIndex: number = 0) => {
-      if (!wallet.publicKey) {
-        setError(new Error("Wallet not connected"));
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const client = new DriftClient({
-          connection,
-          wallet: wallet as any,
-          perpMarketIndexes: [0], // SOL-PERP
-          env: "mainnet-beta",
-          accountSubscription: {
-            type: "websocket",
-            resubTimeoutMs: 30000,
-            commitment: "confirmed",
-          },
-        });
-
-        // Get the user account public key for the specified subaccount
-        const userAccountPublicKey = await getUserAccountPublicKey(
-          new PublicKey(DRIFT_PROGRAM_ID),
-          wallet.publicKey,
-          subaccountIndex
-        );
-
-        console.log(
-          `Subaccount ${subaccountIndex} public key:`,
-          userAccountPublicKey.toString()
-        );
-
-        await client.subscribe();
-
-        const driftUser = new User({
-          driftClient: client,
-          userAccountPublicKey,
-          accountSubscription: {
-            type: "websocket",
-            resubTimeoutMs: 30000,
-            commitment: "confirmed",
-          },
-        });
-
-        await driftUser.subscribe();
-        await driftUser.fetchAccounts();
-
-        const userAccountExists = await driftUser.exists();
-        if (!userAccountExists) {
-          console.log("User account does not exist - needs initialization");
-          setError(
-            new Error("User account does not exist - needs initialization")
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        // Get position data
-        const positionData = await getPositionData(client, driftUser);
-
-        setIsLoading(false);
-        return {
-          client,
-          user: driftUser,
-          positionData,
-        };
-      } catch (error) {
-        console.error("Error initializing Drift client for subaccount:", error);
-        setError(
-          error instanceof Error ? error : new Error("Unknown error occurred")
-        );
-        setIsLoading(false);
-        return null;
-      }
-    },
-    [connection]
-  );
-
-  // Function to get position data from an existing user
-  const getPositionData = useCallback(
-    async (
-      client: DriftClient,
-      user: User
-    ): Promise<DriftPositionData | null> => {
-      try {
-        await user.fetchAccounts();
-
-        const solPosition = user.getPerpPosition(0); // SOL-PERP
-        if (!solPosition) {
-          console.log("No SOL-PERP position found");
-          return null;
-        }
-
-        // Get deposit information (using JitoSOL as an example, index 6)
-        const spotMarketAccount = user.getSpotPosition(6); // JITOSOL
-        const totalDepositJitoSol =
-          spotMarketAccount?.cumulativeDeposits.toNumber() || 0;
-
-        const costBasis = solPosition.quoteEntryAmount.toNumber();
-        const positionSizeSol = solPosition.baseAssetAmount.toNumber();
-        const entryPrice = calculateEntryPrice(solPosition).toNumber();
-        const oracleData = client.getOracleDataForPerpMarket(0);
-        const currentPrice = oracleData.price.toNumber();
-        const positionSizeUsd = positionSizeSol * currentPrice;
-        const marketAccount = await client.getPerpMarketAccount(0);
-        const pnl = calculatePositionPNL(
-          marketAccount!,
-          solPosition,
-          false,
-          oracleData
-        ).toNumber();
-
-        return {
-          totalDeposit: formatTokenAmount(totalDepositJitoSol, 4, 1e9),
-          costBasis: formatTokenAmount(costBasis, 2, 1e6),
-          positionSizeSol: formatTokenAmount(positionSizeSol, 4, 1e9),
-          positionSizeUsd: formatTokenAmount(
-            Math.abs(positionSizeUsd),
-            2,
-            1e15
-          ),
-          entryPrice: formatTokenAmount(entryPrice, 2, 1e6),
-          currentPrice: formatTokenAmount(currentPrice, 2, 1e6),
-          pnl: formatTokenAmount(pnl, 2, 1e6),
-        };
-      } catch (error) {
-        console.error("Error getting position data:", error);
-        setError(
-          error instanceof Error ? error : new Error("Unknown error occurred")
-        );
-        return null;
-      }
-    },
-    []
-  );
-
-  // Function to refresh position data using the current driftClient and driftUser
-  const refreshPositionData = useCallback(async () => {
-    if (!driftClient || !driftUser) {
-      setError(new Error("Drift client or user not initialized"));
-      return null;
+  // Fetch position data
+  const fetchPositionData = useCallback(async () => {
+    if (!driftClient || !driftUser || !isSubscribed) {
+      return;
     }
 
     try {
       setIsLoading(true);
-      const positionData = await getPositionData(driftClient, driftUser);
+      await driftUser.fetchAccounts();
+
+      // Get SOL-PERP position (index 0)
+      const solPosition = driftUser.getPerpPosition(0);
+      if (!solPosition) {
+        console.log("No SOL-PERP position found");
+        setIsLoading(false);
+        return;
+      }
+
+      // Get deposit information (using JitoSOL as an example, index 6)
+      const spotMarketAccount = driftUser.getSpotPosition(6);
+      const totalDepositJitoSol =
+        spotMarketAccount?.cumulativeDeposits.toNumber() || 0;
+
+      const costBasis = solPosition.quoteEntryAmount.toNumber();
+      const positionSizeSol = solPosition.baseAssetAmount.toNumber();
+      const entryPrice = calculateEntryPrice(solPosition).toNumber();
+      const oracleData = driftClient.getOracleDataForPerpMarket(0);
+      const currentPrice = oracleData.price.toNumber();
+      const positionSizeUsd = positionSizeSol * currentPrice;
+      const marketAccount = await driftClient.getPerpMarketAccount(0);
+      const pnl = calculatePositionPNL(
+        marketAccount!,
+        solPosition,
+        false,
+        oracleData
+      ).toNumber();
+
+      // Format and set position data
+      setPosition({
+        totalDeposit: formatTokenAmount(totalDepositJitoSol, 4, 1e9),
+        costBasis: formatTokenAmount(costBasis, 2, 1e6),
+        positionSizeSol: formatTokenAmount(positionSizeSol, 4, 1e9),
+        positionSizeUsd: formatTokenAmount(Math.abs(positionSizeUsd), 2, 1e15),
+        entryPrice: formatTokenAmount(entryPrice, 2, 1e6),
+        currentPrice: formatTokenAmount(currentPrice, 2, 1e6),
+        pnl: formatTokenAmount(pnl, 2, 1e6),
+      });
       setIsLoading(false);
-      return positionData;
-    } catch (error) {
-      console.error("Error refreshing position data:", error);
+    } catch (err) {
+      console.error("Error fetching position data:", err);
       setError(
-        error instanceof Error ? error : new Error("Unknown error occurred")
+        err instanceof Error ? err : new Error("Unknown error occurred")
       );
       setIsLoading(false);
-      return null;
     }
-  }, [driftClient, driftUser, getPositionData]);
+  }, [driftClient, driftUser, isSubscribed]);
+
+  // Fetch position data when client is subscribed
+  useEffect(() => {
+    if (isSubscribed && driftClient && driftUser) {
+      fetchPositionData();
+    }
+  }, [isSubscribed, driftClient, driftUser, fetchPositionData]);
 
   return {
-    initializeForSubaccount,
-    refreshPositionData,
-    driftPosition,
+    position,
     isLoading,
     error,
+    fetchPositionData,
   };
 };

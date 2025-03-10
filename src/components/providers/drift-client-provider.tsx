@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { DriftClientContext } from "@/contexts/drift-client-context";
-import { useDriftClient } from "@/hooks/useDriftClient";
+import { useDrift } from "@/hooks/useDrift";
 
 interface DriftClientWrapperProps {
   children: React.ReactNode;
@@ -23,13 +23,12 @@ export const DriftClientProvider: React.FC<DriftClientWrapperProps> = ({
     error,
     initializeWithWallet,
     resetDriftClient,
-    driftPosition,
-  } = useDriftClient({
+  } = useDrift({
     env: "mainnet-beta",
     rpcUrl: connection.rpcEndpoint,
   });
 
-  // Initialize Drift client when wallet is connected
+  // init drift client when wallet is connected
   useEffect(() => {
     if (wallet.publicKey && !isInitialized && !isLoading) {
       initializeWithWallet(wallet, connection);
@@ -43,7 +42,6 @@ export const DriftClientProvider: React.FC<DriftClientWrapperProps> = ({
     wallet,
   ]);
 
-  // Reset Drift client when wallet is disconnected
   useEffect(() => {
     if (!wallet.publicKey && isInitialized) {
       resetDriftClient();
@@ -56,7 +54,6 @@ export const DriftClientProvider: React.FC<DriftClientWrapperProps> = ({
       driftUser={driftUser}
       isInitialized={isInitialized}
       isSubscribed={isSubscribed}
-      driftPosition={driftPosition}
     >
       {children}
     </DriftClientContext>

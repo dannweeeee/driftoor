@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { DriftClient } from "@drift-labs/sdk";
+import { DriftClient, User } from "@drift-labs/sdk";
 import { toast } from "sonner";
 import { useDriftSubaccountStore } from "@/stores/useDriftSubaccountStore";
+import { useDriftClientStore } from "@/stores/useDriftClientStore";
 
 interface UseDriftSwitchSubaccountProps {
   driftClient: DriftClient | null;
@@ -15,19 +16,14 @@ interface SwitchSubaccountResult {
   error: Error | null;
 }
 
-/**
- * Hook for switching between Drift subaccounts
- * Uses Zustand store to persist the active subaccount index
- *
- * @param driftClient The Drift client instance
- * @returns Object containing the switchSubaccount function, loading state, and error
- */
 export const useDriftSwitchSubaccount = ({
   driftClient,
 }: UseDriftSwitchSubaccountProps): SwitchSubaccountResult => {
   const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { setActiveSubaccountIndex } = useDriftSubaccountStore();
+
+  const updateDriftUser = useDriftClientStore((state) => state.updateDriftUser);
 
   const switchSubaccount = useCallback(
     async (index: number): Promise<boolean> => {
@@ -42,11 +38,34 @@ export const useDriftSwitchSubaccount = ({
       setError(null);
 
       try {
-        // Switch the active user in the Drift client
         await driftClient.switchActiveUser(index);
 
-        // Update the active subaccount index in the Zustand store
         setActiveSubaccountIndex(index);
+
+        // Update the driftUser in the useDriftClientStore
+        try {
+          const userAccountPublicKey =
+            await driftClient.getUserAccountPublicKey();
+
+          // Create a new User instance for the new subaccount
+          const newDriftUser = new User({
+            driftClient,
+            userAccountPublicKey,
+            accountSubscription: {
+              type: "websocket",
+              resubTimeoutMs: 30000,
+              commitment: "confirmed",
+            },
+          });
+
+          // Subscribe to the new user
+          await newDriftUser.subscribe();
+
+          // Update the driftUser in the store using the updateDriftUser function
+          updateDriftUser(newDriftUser);
+        } catch (userErr) {
+          console.error("Error updating driftUser:", userErr);
+        }
 
         toast.success(`Switched to Subaccount ${index}`);
         return true;
@@ -62,7 +81,7 @@ export const useDriftSwitchSubaccount = ({
         setIsSwitching(false);
       }
     },
-    [driftClient, setActiveSubaccountIndex]
+    [driftClient, setActiveSubaccountIndex, updateDriftUser]
   );
 
   return {

@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { WalletContextState, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import {
   DriftClient,
   User,
@@ -11,57 +11,28 @@ import {
 } from "@drift-labs/sdk";
 import { useDriftSubaccountStore } from "@/stores/useDriftSubaccountStore";
 
+interface UseDriftSubaccountsProps {
+  connection: Connection;
+  driftClient: DriftClient | null;
+}
+
 interface SubaccountData {
   index: number;
   publicKey: string;
   user: User | null;
 }
 
-export const useDriftSubaccounts = (connection: Connection) => {
+export const useDriftSubaccounts = ({
+  connection,
+  driftClient,
+}: UseDriftSubaccountsProps) => {
   const wallet = useWallet();
   const [subaccounts, setSubaccounts] = useState<SubaccountData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Use the persisted active subaccount index from Zustand
   const { activeSubaccountIndex, setActiveSubaccountIndex } =
     useDriftSubaccountStore();
-
-  const [driftClient, setDriftClient] = useState<DriftClient | null>(null);
-
-  const initializeDriftClient = useCallback(
-    async (wallet: WalletContextState) => {
-      if (!wallet.publicKey) {
-        setError(new Error("Wallet not connected"));
-        return null;
-      }
-
-      try {
-        const client = new DriftClient({
-          connection,
-          wallet: wallet as any,
-          perpMarketIndexes: [0], // SOL-PERP
-          env: "mainnet-beta",
-          accountSubscription: {
-            type: "websocket",
-            resubTimeoutMs: 30000,
-            commitment: "confirmed",
-          },
-        });
-
-        await client.subscribe();
-        setDriftClient(client);
-        return client;
-      } catch (error) {
-        console.error("Error initializing Drift client:", error);
-        setError(
-          error instanceof Error ? error : new Error("Unknown error occurred")
-        );
-        return null;
-      }
-    },
-    [connection]
-  );
 
   const getSubaccountUser = useCallback(
     async (
@@ -147,13 +118,6 @@ export const useDriftSubaccounts = (connection: Connection) => {
     }
   }, [wallet.publicKey, driftClient, getSubaccountUser, connection]);
 
-  // Initialize drift client when wallet connects
-  useEffect(() => {
-    if (wallet.publicKey && !driftClient) {
-      initializeDriftClient(wallet);
-    }
-  }, [wallet, driftClient, initializeDriftClient]);
-
   // Fetch subaccounts when drift client is initialized
   useEffect(() => {
     if (driftClient && wallet.publicKey) {
@@ -201,8 +165,6 @@ export const useDriftSubaccounts = (connection: Connection) => {
     error,
     activeSubaccountIndex,
     setActiveSubaccountIndex,
-    driftClient,
-    initializeDriftClient,
     getSubaccountUser,
     refreshSubaccounts: fetchSubaccounts,
   };

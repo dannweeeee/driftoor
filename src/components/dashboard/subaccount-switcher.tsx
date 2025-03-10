@@ -26,6 +26,9 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDriftSubaccountStore } from "@/stores/useDriftSubaccountStore";
+import { formatBalance } from "@/helpers/formatBalance";
+import { useDriftClient } from "@/contexts/drift-client-context";
+import { formatPublicKey } from "@/helpers/formatPublicKey";
 
 type PopoverTriggerProps = React.ComponentPropsWithoutRef<
   typeof PopoverTrigger
@@ -40,18 +43,19 @@ export default function SubaccountSwitcher({
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const { connection } = useConnection();
 
-  // Get the active subaccount index from Zustand store
   const { activeSubaccountIndex } = useDriftSubaccountStore();
 
-  const { subaccounts, isLoading, error, driftClient, refreshSubaccounts } =
-    useDriftSubaccounts(connection);
+  const { driftClient, driftUser } = useDriftClient();
 
-  // Use the switch subaccount hook
+  const { subaccounts, isLoading, error, refreshSubaccounts } =
+    useDriftSubaccounts({ connection, driftClient });
+
   const { switchSubaccount, isSwitching } = useDriftSwitchSubaccount({
     driftClient,
   });
 
-  // Handle switching subaccounts
+  console.log("DRIFT USER", formatPublicKey(driftUser?.userAccountPublicKey));
+
   const handleSwitchSubaccount = async (index: number) => {
     const success = await switchSubaccount(index);
     if (success) {
@@ -59,7 +63,6 @@ export default function SubaccountSwitcher({
     }
   };
 
-  // Get the currently active subaccount
   const activeSubaccount = React.useMemo(() => {
     return (
       subaccounts.find(
@@ -67,17 +70,6 @@ export default function SubaccountSwitcher({
       ) || null
     );
   }, [subaccounts, activeSubaccountIndex]);
-
-  // Format account balance if available
-  const formatBalance = (user: any) => {
-    if (!user || !user.getQuoteBalance) return "N/A";
-    try {
-      const balance = user.getQuoteBalance();
-      return `$${balance.toFixed(2)}`;
-    } catch (error) {
-      return "N/A";
-    }
-  };
 
   // Handle refreshing subaccounts with loading state
   const handleRefresh = async () => {
@@ -107,10 +99,22 @@ export default function SubaccountSwitcher({
           {isLoading ? (
             <Skeleton className="h-5 w-5 rounded-full mr-2" />
           ) : (
-            <Avatar className="mr-2 h-5 w-5">
-              <AvatarFallback>
-                {activeSubaccount ? activeSubaccount.index : 0}
-              </AvatarFallback>
+            <Avatar className="mr-2 h-5 w-5 overflow-hidden">
+              {activeSubaccount?.publicKey ? (
+                <img
+                  src={`https://api.dicebear.com/7.x/identicon/svg?seed=${activeSubaccount.publicKey.toString()}`}
+                  alt="Avatar"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <AvatarFallback>
+                  <img
+                    src={`https://api.dicebear.com/7.x/identicon/svg?seed=default`}
+                    alt="Avatar"
+                    className="h-full w-full object-cover"
+                  />
+                </AvatarFallback>
+              )}
             </Avatar>
           )}
           {isLoading || isSwitching ? (
@@ -155,8 +159,16 @@ export default function SubaccountSwitcher({
                     className="text-sm cursor-pointer"
                     disabled={isSwitching}
                   >
-                    <Avatar className="mr-2 h-5 w-5">
-                      <AvatarFallback>{subaccount.index}</AvatarFallback>
+                    <Avatar className="mr-2 h-5 w-5 overflow-hidden">
+                      {subaccount.publicKey ? (
+                        <img
+                          src={`https://api.dicebear.com/7.x/identicon/svg?seed=${subaccount.publicKey.toString()}`}
+                          alt="Avatar"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <AvatarFallback>{subaccount.index}</AvatarFallback>
+                      )}
                     </Avatar>
                     <div className="flex flex-col">
                       <span>Subaccount {subaccount.index}</span>
