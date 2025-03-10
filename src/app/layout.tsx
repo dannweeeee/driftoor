@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Lexend_Deca } from "next/font/google";
 import "./globals.css";
 import { SolanaWalletProvider } from "@/components/providers/solana-wallet-provider";
+import { DriftClientProvider } from "@/components/providers/drift-client-provider";
+import { Toaster } from "sonner";
 
 const lexendDeca = Lexend_Deca({
   variable: "--font-lexend-deca",
@@ -25,7 +27,12 @@ export default function RootLayout({
       <body
         className={`${lexendDeca.variable} font-lexend-deca antialiased min-h-screen circles`}
       >
-        <SolanaWalletProvider>{children}</SolanaWalletProvider>
+        <SolanaWalletProvider>
+          <DriftClientProvider>
+            {children}
+            <Toaster />
+          </DriftClientProvider>
+        </SolanaWalletProvider>
       </body>
     </html>
   );

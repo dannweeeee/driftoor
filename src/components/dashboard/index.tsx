@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AccountSwitcher from "@/components/dashboard/account-switcher";
+import SubaccountSwitcher from "@/components/dashboard/subaccount-switcher";
 
 export default function Dashboard() {
   return (
@@ -25,7 +25,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold tracking-tight">Portfolio</h2>
             <div className="ml-auto">
-              <AccountSwitcher />
+              <SubaccountSwitcher />
             </div>
           </div>
           <Tabs defaultValue="overview" className="space-y-6">
