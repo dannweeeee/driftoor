@@ -11,8 +11,29 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SubaccountSwitcher from "@/components/dashboard/subaccount-switcher";
+import { useDriftClient } from "@/contexts/drift-client-context";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { useDriftSpotUsdcPosition } from "@/hooks/spot/useDriftSpotUsdcPosition";
+import { useDriftPerpsPosition } from "@/hooks/perps/useDriftPerpsPosition";
+import { marketsAndAccounts } from "@/helpers/marketsAndAccounts";
+import { useEffect } from "react";
 
 export default function Dashboard() {
+  const { connection } = useConnection();
+  const { driftClient, driftUser, isSubscribed } = useDriftClient();
+  const { spotPosition } = useDriftSpotUsdcPosition();
+  const { position } = useDriftPerpsPosition();
+
+  console.log("SPOT POSITION", spotPosition);
+  console.log("POSITION", position);
+
+  useEffect(() => {
+    marketsAndAccounts.forEach((marketAndAccount) => {
+      console.log("Market:", marketAndAccount.market);
+      console.log("Account to use:", marketAndAccount.accountToUse);
+    });
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -39,7 +60,7 @@ export default function Dashboard() {
                 <Card className="hover:shadow-md transition-shadow">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Account Balance
+                      Portfolio Balance
                     </CardTitle>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

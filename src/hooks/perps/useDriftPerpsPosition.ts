@@ -15,7 +15,7 @@ interface DriftPosition {
   currentPrice: number;
 }
 
-export const useDriftPosition = () => {
+export const useDriftPerpsPosition = () => {
   const { driftClient, driftUser, isSubscribed } = useDriftClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -47,9 +47,9 @@ export const useDriftPosition = () => {
         return;
       }
 
-      // Get deposit information (using JitoSOL as an example, index 6)
-      const spotMarketAccount = driftUser.getSpotPosition(6);
-      const totalDepositJitoSol =
+      // Get deposit information (USDC)
+      const spotMarketAccount = driftUser.getSpotPosition(0);
+      const totalDepositUsdc =
         spotMarketAccount?.cumulativeDeposits.toNumber() || 0;
 
       const costBasis = solPosition.quoteEntryAmount.toNumber();
@@ -68,7 +68,7 @@ export const useDriftPosition = () => {
 
       // Format and set position data
       setPosition({
-        totalDeposit: formatTokenAmount(totalDepositJitoSol, 4, 1e9),
+        totalDeposit: formatTokenAmount(totalDepositUsdc, 6, 1e6),
         costBasis: formatTokenAmount(costBasis, 2, 1e6),
         positionSizeSol: formatTokenAmount(positionSizeSol, 4, 1e9),
         positionSizeUsd: formatTokenAmount(Math.abs(positionSizeUsd), 2, 1e15),
