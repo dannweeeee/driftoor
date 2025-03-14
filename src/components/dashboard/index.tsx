@@ -20,7 +20,6 @@ import { useDriftSubaccounts } from "@/hooks/useDriftSubaccounts";
 import { formatPublicKey } from "@/helpers/formatPublicKey";
 import BalanceCard from "@/components/dashboard/balance-card";
 import PositionsTable from "@/components/dashboard/positions-table";
-import OrdersTable from "@/components/dashboard/orders-table";
 
 export default function Dashboard() {
   const { connection } = useConnection();
@@ -76,7 +75,6 @@ export default function Dashboard() {
             <TabsList className="bg-zinc-100 dark:bg-zinc-900">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="positions">Positions</TabsTrigger>
-              <TabsTrigger value="orders">Orders</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -160,7 +158,8 @@ export default function Dashboard() {
                               </td>
                               <td className="text-right py-3 px-4">
                                 {subaccount.index === activeSubaccountIndex &&
-                                position?.positionSizeSol
+                                position?.positionSizeSol &&
+                                position.positionSizeSol !== 0
                                   ? `${position.positionSizeSol} SOL`
                                   : "-"}
                               </td>
@@ -187,10 +186,6 @@ export default function Dashboard() {
 
             <TabsContent value="positions" className="space-y-6">
               <PositionsTable position={position} />
-            </TabsContent>
-
-            <TabsContent value="orders" className="space-y-6">
-              <OrdersTable driftUser={driftUser} />
             </TabsContent>
           </Tabs>
         </div>

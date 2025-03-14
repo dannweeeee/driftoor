@@ -34,9 +34,10 @@ export default function PositionsTable({ position }: PositionsTableProps) {
   }
 
   const isLong = position.positionSizeSol > 0;
-  const pnlPercentage = position.costBasis !== 0 
-    ? (position.pnl / Math.abs(position.costBasis)) * 100 
-    : 0;
+  const pnlPercentage =
+    position.costBasis !== 0
+      ? (position.pnl / Math.abs(position.costBasis)) * 100
+      : 0;
 
   return (
     <Card>
@@ -87,10 +88,15 @@ export default function PositionsTable({ position }: PositionsTableProps) {
                 <td className="text-right py-4 px-4">
                   ${position.currentPrice.toFixed(2)}
                 </td>
-                <td className={`text-right py-4 px-4 ${position.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {position.pnl >= 0 ? '+' : ''}${position.pnl.toFixed(2)} 
+                <td
+                  className={`text-right py-4 px-4 ${
+                    position.pnl >= 0 ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {position.pnl >= 0 ? "+" : ""}${position.pnl.toFixed(2)}
                   <span className="text-xs ml-1">
-                    ({position.pnl >= 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%)
+                    ({position.pnl >= 0 ? "+" : ""}
+                    {pnlPercentage.toFixed(2)}%)
                   </span>
                 </td>
               </tr>

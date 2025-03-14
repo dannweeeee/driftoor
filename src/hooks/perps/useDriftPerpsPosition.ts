@@ -4,6 +4,7 @@ import { useCallback, useState, useEffect } from "react";
 import { calculateEntryPrice, calculatePositionPNL } from "@drift-labs/sdk";
 import { useDriftClient } from "@/contexts/drift-client-context";
 import { formatTokenAmount } from "@/helpers/formatTokenAmount";
+import { useDriftSubaccountStore } from "@/stores/useDriftSubaccountStore";
 
 interface DriftPosition {
   totalDeposit: number;
@@ -17,6 +18,7 @@ interface DriftPosition {
 
 export const useDriftPerpsPosition = () => {
   const { driftClient, driftUser, isSubscribed } = useDriftClient();
+  const { activeSubaccountIndex } = useDriftSubaccountStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [position, setPosition] = useState<DriftPosition>({
@@ -64,8 +66,17 @@ export const useDriftPerpsPosition = () => {
         console.warn("Error getting perp position:", error);
       }
 
-      if (!solPosition) {
-        console.log("No SOL-PERP position found");
+      if (!solPosition || solPosition.baseAssetAmount.isZero()) {
+        console.log("No SOL-PERP position found or position is zero");
+        setPosition({
+          totalDeposit: 0,
+          costBasis: 0,
+          positionSizeSol: 0,
+          positionSizeUsd: 0,
+          entryPrice: 0,
+          pnl: 0,
+          currentPrice: 0,
+        });
         setIsLoading(false);
         return;
       }
@@ -141,11 +152,32 @@ export const useDriftPerpsPosition = () => {
     }
   }, [driftClient, driftUser, isSubscribed]);
 
+  // Reset position when subaccount changes
+  useEffect(() => {
+    // Reset position to default values when subaccount changes
+    setPosition({
+      totalDeposit: 0,
+      costBasis: 0,
+      positionSizeSol: 0,
+      positionSizeUsd: 0,
+      entryPrice: 0,
+      pnl: 0,
+      currentPrice: 0,
+    });
+  }, [activeSubaccountIndex]);
+
+  // Fetch position data when dependencies change
   useEffect(() => {
     if (isSubscribed && driftClient && driftUser) {
       fetchPositionData();
     }
-  }, [isSubscribed, driftClient, driftUser, fetchPositionData]);
+  }, [
+    isSubscribed,
+    driftClient,
+    driftUser,
+    fetchPositionData,
+    activeSubaccountIndex,
+  ]);
 
   return {
     position,
