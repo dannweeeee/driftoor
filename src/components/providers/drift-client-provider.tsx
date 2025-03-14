@@ -28,7 +28,7 @@ export const DriftClientProvider: React.FC<DriftClientWrapperProps> = ({
     rpcUrl: connection.rpcEndpoint,
   });
 
-  // init drift client when wallet is connected
+  // Init drift client when wallet is connected
   useEffect(() => {
     if (wallet.publicKey && !isInitialized && !isLoading) {
       initializeWithWallet(wallet, connection);

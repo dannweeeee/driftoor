@@ -2,11 +2,12 @@
 
 import { create } from "zustand";
 import { Connection } from "@solana/web3.js";
-import { Wallet, DriftClient, User } from "@drift-labs/sdk";
+import { DriftClient, User } from "@drift-labs/sdk";
+import { WalletContextState } from "@solana/wallet-adapter-react";
 
 interface DriftState {
   connection: Connection | null;
-  wallet: Wallet | null;
+  wallet: WalletContextState | any | null;
   driftClient: DriftClient | null;
   driftUser: User | null;
   isInitialized: boolean;
@@ -15,7 +16,7 @@ interface DriftState {
   error: Error | null;
   initializeDriftClient: (
     connection: Connection,
-    wallet: Wallet,
+    wallet: WalletContextState | any,
     env: "mainnet-beta" | "devnet",
     perpMarketIndexes?: number[]
   ) => Promise<void>;
@@ -58,12 +59,13 @@ export const useDriftClientStore = create<DriftState>((set, get) => ({
         await existingUser.unsubscribe();
       }
 
-      // Initialize the Drift client with websocket subscription
+      // Init drift client
       const driftClient = new DriftClient({
         connection,
         wallet,
         env,
         perpMarketIndexes,
+        spotMarketIndexes: [0], // usdc
         accountSubscription: {
           type: "websocket",
           resubTimeoutMs: 30000,
@@ -104,7 +106,7 @@ export const useDriftClientStore = create<DriftState>((set, get) => ({
 
       await driftClient.subscribe();
 
-      // Initialize the User instance after client subscription
+      // Init the user instance after client subscription
       const userAccountPublicKey = await driftClient.getUserAccountPublicKey();
 
       const driftUser = new User({

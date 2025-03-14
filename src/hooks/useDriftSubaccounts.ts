@@ -69,7 +69,6 @@ export const useDriftSubaccounts = ({
     setError(null);
 
     try {
-      // Use getMultipleAccounts to fetch all subaccount data in a single RPC call
       const subaccountPubkeysPromises = Array.from({ length: 10 }, (_, i) =>
         getUserAccountPublicKey(
           new PublicKey(DRIFT_PROGRAM_ID),
@@ -80,14 +79,12 @@ export const useDriftSubaccounts = ({
 
       const subaccountPubkeys = await Promise.all(subaccountPubkeysPromises);
 
-      // Get all account infos in a single RPC call
       const accountInfos = await connection.getMultipleAccountsInfo(
         subaccountPubkeys
       );
 
       const validSubaccounts: SubaccountData[] = [];
 
-      // Process results - only create User objects for accounts that exist
       for (let i = 0; i < accountInfos.length; i++) {
         if (accountInfos[i] !== null) {
           const user = await getSubaccountUser(
@@ -118,7 +115,6 @@ export const useDriftSubaccounts = ({
     }
   }, [wallet.publicKey, driftClient, getSubaccountUser, connection]);
 
-  // Fetch subaccounts when drift client is initialized
   useEffect(() => {
     if (driftClient && wallet.publicKey) {
       fetchSubaccounts();
@@ -128,7 +124,6 @@ export const useDriftSubaccounts = ({
   // Set the active subaccount in the Drift client when it changes or when the client is initialized
   useEffect(() => {
     if (driftClient && wallet.publicKey) {
-      // Try to switch to the stored active subaccount
       const switchToStoredSubaccount = async () => {
         try {
           await driftClient.switchActiveUser(activeSubaccountIndex);
@@ -138,7 +133,6 @@ export const useDriftSubaccounts = ({
             `Error switching to subaccount ${activeSubaccountIndex}:`,
             error
           );
-          // If the stored subaccount doesn't exist, reset to 0
           if (activeSubaccountIndex !== 0) {
             setActiveSubaccountIndex(0);
             try {

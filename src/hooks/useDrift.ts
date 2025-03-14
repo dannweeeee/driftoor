@@ -51,7 +51,6 @@ export const useDrift = (options: UseDriftOptions = {}) => {
     getUserAccount,
   } = useDriftClientStore();
 
-  // Initialize Drift client with a wallet adapter
   const initializeWithWallet = useCallback(
     async (walletAdapter: WalletContextState, connection: Connection) => {
       if (
@@ -69,23 +68,8 @@ export const useDrift = (options: UseDriftOptions = {}) => {
         setIsConnecting(true);
         setConnectionError(null);
 
-        // Create a Drift SDK compatible wallet from the wallet adapter
-        const driftWallet: Wallet = {
-          publicKey: walletAdapter.publicKey,
-          signTransaction: walletAdapter.signTransaction,
-          signAllTransactions: walletAdapter.signAllTransactions,
-          // Create a dummy keypair for payer since we can't access the actual keypair
-          payer: Keypair.generate(), // This is just a placeholder
-          signVersionedTransaction: async (tx: VersionedTransaction) => {
-            return await walletAdapter.signTransaction!(tx as any);
-          },
-          signAllVersionedTransactions: async (txs: VersionedTransaction[]) => {
-            return await walletAdapter.signAllTransactions!(txs as any[]);
-          },
-        };
-
         // Initialize Drift client
-        await storeInitializeDriftClient(connection, driftWallet, env);
+        await storeInitializeDriftClient(connection, walletAdapter as any, env);
 
         // Subscribe to Drift client
         await subscribeToDriftClient();

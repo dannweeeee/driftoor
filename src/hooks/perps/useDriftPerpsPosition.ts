@@ -29,7 +29,6 @@ export const useDriftPerpsPosition = () => {
     currentPrice: 0,
   });
 
-  // Fetch position data
   const fetchPositionData = useCallback(async () => {
     if (!driftClient || !driftUser || !isSubscribed) {
       return;
@@ -37,36 +36,92 @@ export const useDriftPerpsPosition = () => {
 
     try {
       setIsLoading(true);
-      await driftUser.fetchAccounts();
 
-      // Get SOL-PERP position (index 0)
-      const solPosition = driftUser.getPerpPosition(0);
+      try {
+        await driftUser.fetchAccounts();
+      } catch (fetchError) {
+        console.warn("Error fetching accounts, continuing anyway:", fetchError);
+      }
+
+      let userExists = false;
+      try {
+        userExists = await driftUser.exists();
+      } catch (error) {
+        console.warn("Error checking if user exists:", error);
+      }
+
+      if (!userExists) {
+        console.log("User does not exist yet, using default position");
+        setIsLoading(false);
+        return;
+      }
+
+      let solPosition;
+      try {
+        solPosition = driftUser.getPerpPosition(0);
+        console.log("SOL-PERP position:", solPosition);
+      } catch (error) {
+        console.warn("Error getting perp position:", error);
+      }
+
       if (!solPosition) {
         console.log("No SOL-PERP position found");
         setIsLoading(false);
         return;
       }
 
-      // Get deposit information (USDC)
-      const spotMarketAccount = driftUser.getSpotPosition(0);
+      let spotMarketAccount;
+      try {
+        spotMarketAccount = driftUser.getSpotPosition(0);
+      } catch (error) {
+        console.warn("Error getting spot position:", error);
+      }
+
       const totalDepositUsdc =
-        spotMarketAccount?.cumulativeDeposits.toNumber() || 0;
+        spotMarketAccount?.cumulativeDeposits?.toNumber() || 0;
 
-      const costBasis = solPosition.quoteEntryAmount.toNumber();
-      const positionSizeSol = solPosition.baseAssetAmount.toNumber();
-      const entryPrice = calculateEntryPrice(solPosition).toNumber();
-      const oracleData = driftClient.getOracleDataForPerpMarket(0);
-      const currentPrice = oracleData.price.toNumber();
-      const positionSizeUsd = positionSizeSol * currentPrice;
-      const marketAccount = await driftClient.getPerpMarketAccount(0);
-      const pnl = calculatePositionPNL(
-        marketAccount!,
-        solPosition,
-        false,
-        oracleData
-      ).toNumber();
+      let costBasis = 0;
+      let positionSizeSol = 0;
+      let entryPrice = 0;
+      let currentPrice = 0;
+      let positionSizeUsd = 0;
+      let pnl = 0;
 
-      // Format and set position data
+      try {
+        costBasis = solPosition.quoteEntryAmount.toNumber();
+        positionSizeSol = solPosition.baseAssetAmount.toNumber();
+        entryPrice = calculateEntryPrice(solPosition).toNumber();
+      } catch (error) {
+        console.warn("Error calculating position metrics:", error);
+      }
+
+      let oracleData;
+      try {
+        oracleData = driftClient.getOracleDataForPerpMarket(0);
+        if (oracleData && oracleData.price) {
+          currentPrice = oracleData.price.toNumber();
+          positionSizeUsd = positionSizeSol * currentPrice;
+        }
+      } catch (error) {
+        console.warn("Error getting oracle data:", error);
+      }
+
+      try {
+        if (oracleData) {
+          const marketAccount = await driftClient.getPerpMarketAccount(0);
+          if (marketAccount) {
+            pnl = calculatePositionPNL(
+              marketAccount,
+              solPosition,
+              false,
+              oracleData
+            ).toNumber();
+          }
+        }
+      } catch (error) {
+        console.warn("Error calculating PNL:", error);
+      }
+
       setPosition({
         totalDeposit: formatTokenAmount(totalDepositUsdc, 6, 1e6),
         costBasis: formatTokenAmount(costBasis, 2, 1e6),
@@ -86,7 +141,6 @@ export const useDriftPerpsPosition = () => {
     }
   }, [driftClient, driftUser, isSubscribed]);
 
-  // Fetch position data when client is subscribed
   useEffect(() => {
     if (isSubscribed && driftClient && driftUser) {
       fetchPositionData();
