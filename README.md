@@ -2,7 +2,7 @@
 
 A dashboard for everything Drift.
 
-**This is a work in progress repository**
+**NOTE: This is a work in progress repository, more features will be added soon!**
 
 ## Features
 
